@@ -4,6 +4,43 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
+}
+
+export async function authenticateUser(formData: FormData) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          throw new Error('Invalid credentials.');
+        default:
+          throw new Error('Something went wrong.');
+      }
+    }
+    throw error;
+  }
+}
 
 const FormSchema = z.object({
   id: z.string(),
